@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Stationery Record</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1d2a24;--muted:#5c6b63;--line:#d6ddd8;--accent:#1f6f54;--accent-ink:#fff;--danger:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#121a16;--card:#1a2420;--ink:#e8efea;--muted:#9fb0a6;--line:#2c3a33;--accent:#4cc79a;--accent-ink:#0b1a13;--danger:#ff8a80}}
+:root[data-theme="dark"]{--bg:#121a16;--card:#1a2420;--ink:#e8efea;--muted:#9fb0a6;--line:#2c3a33;--accent:#4cc79a;--accent-ink:#0b1a13;--danger:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI",Tahoma,Arial,sans-serif}
+main{max-width:900px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.5rem;margin:0 0 4px}
+h2{font-size:1.1rem;margin:0 0 12px}
+.sub{color:var(--muted);margin:0 0 20px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+label{display:flex;flex-direction:column;font-size:.85rem;color:var(--muted);gap:4px}
+input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-width:0}
+input:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);padding:9px 16px}
+button.alt{background:transparent;color:var(--accent)}
+button.del{background:transparent;color:var(--danger);border-color:var(--line);padding:4px 10px}
+.actions{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
+.wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:.85rem;color:var(--muted);font-weight:600}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td{font-weight:700;border-bottom:0}
+.empty{color:var(--muted);padding:8px 0}
+.bar{display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+@media print{
+ :root{--bg:#fff;--card:#fff;--ink:#000;--muted:#333;--line:#999}
+ .noprint{display:none!important}
+ section{border:0;padding:0}
+ main{padding:0}
+ .wrap{overflow:visible}
+}
+</style>
+</head>
+<body>
+<main>
+<h1>Stationery Record</h1>
+<p class="sub">Name, department, class aur stationery ki quantity likhein. Har item ka total neeche alag se banta hai.</p>
+
+<section class="noprint">
+<h2>Nayi entry</h2>
+<form id="f">
+<label>Name<input id="name" required></label>
+<label>Department<input id="dept" required></label>
+<label>Class (optional)<input id="cls" placeholder="Khali chhor sakte hain"></label>
+<label>Stationery item<input id="item" list="items" required placeholder="e.g. Pen"></label>
+<label>Quantity<input id="qty" type="number" min="1" step="1" required></label>
+<div class="actions"><button type="submit">Add entry</button></div>
+</form>
+<datalist id="items"></datalist>
+</section>
+
+<section>
+<h2>Saari entries</h2>
+<div class="bar noprint">
+<button class="alt" id="print" type="button">Print</button>
+<button class="alt" id="clear" type="button">Clear all</button>
+</div>
+<div class="wrap"><table>
+<thead><tr><th>#</th><th>Name</th><th>Department</th><th>Class</th><th>Item</th><th class="n">Qty</th><th class="noprint"></th></tr></thead>
+<tbody id="rows"></tbody>
+</table></div>
+<div id="e1" class="empty">Abhi koi entry nahi hai.</div>
+</section>
+
+<section>
+<h2>Item-wise total</h2>
+<div class="wrap"><table>
+<thead><tr><th>Item</th><th class="n">Total quantity</th></tr></thead>
+<tbody id="tot"></tbody>
+</table></div>
+</section>
+</main>
+
+<script>
+var KEY="stationery-records",data=[];
+try{var s=localStorage.getItem(KEY);if(s)data=JSON.parse(s)||[]}catch(e){data=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+function esc(t){return String(t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function render(){
+ var r="",t={},names={},g=0;
+ data.forEach(function(d,i){
+  r+="<tr><td>"+(i+1)+"</td><td>"+esc(d.name)+"</td><td>"+esc(d.dept)+"</td><td>"+(d.cls?esc(d.cls):"-")+"</td><td>"+esc(d.item)+"</td><td class='n'>"+d.qty+"</td><td class='noprint'><button class='del' data-i='"+i+"'>Delete</button></td></tr>";
+  var k=d.item.trim().toLowerCase();
+  t[k]=(t[k]||0)+d.qty;if(!names[k])names[k]=d.item.trim();g+=d.qty;
+ });
+ document.getElementById("rows").innerHTML=r;
+ document.getElementById("e1").style.display=data.length?"none":"block";
+ var h="",o="";
+ Object.keys(t).sort().forEach(function(k){h+="<tr><td>"+esc(names[k])+"</td><td class='n'>"+t[k]+"</td></tr>";o+="<option value='"+esc(names[k])+"'>"});
+ document.getElementById("tot").innerHTML=h;
+ document.getElementById("items").innerHTML=o;
+}
+document.getElementById("f").addEventListener("submit",function(e){
+ e.preventDefault();
+ var q=parseInt(document.getElementById("qty").value,10);
+ if(!q||q<1)return;
+ var n=document.getElementById("name").value.trim(),dp=document.getElementById("dept").value.trim(),c=document.getElementById("cls").value.trim(),it=document.getElementById("item").value.trim();
+ var same=function(a,b){return a.trim().toLowerCase()===b.trim().toLowerCase()};
+ var found=data.filter(function(d){return same(d.name,n)&&same(d.dept,dp)&&same(d.cls,c)&&same(d.item,it)})[0];
+ if(found){found.qty+=q}else{data.push({name:n,dept:dp,cls:c,item:it,qty:q})}
+ save();render();
+ document.getElementById("item").value="";document.getElementById("qty").value="";document.getElementById("item").focus();
+});
+document.getElementById("rows").addEventListener("click",function(e){
+ var i=e.target.getAttribute("data-i");
+ if(i!==null){data.splice(+i,1);save();render()}
+});
+document.getElementById("clear").addEventListener("click",function(){
+ if(data.length&&confirm("Saari entries delete kar dein?")){data=[];save();render()}
+});
+document.getElementById("print").addEventListener("click",function(){window.print()});
+render();
+</script>
+</body>
+</html>
